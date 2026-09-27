@@ -39,7 +39,7 @@ def main():
     assert os.environ.get('GITHUB_ACTIONS') == 'true'
     assert os.environ.get('RUNNER_ARCH') == 'ARM64' and os.geteuid() == 0
     assert not CONF.exists(), 'Never test over an existing installation'
-    env = dict(os.environ,RD_ADDRESS='192.0.2.2',RD_INTERFACES='rdeserver',
+    env = dict(os.environ,RD_ADDRESS='192.0.2.1',RD_INTERFACES='rdeserver',
                RD_NETWORKS='192.0.2.0/30',RD_XKEEN='off')
     installer = [sys.executable,str(ROOT/'src/install.py')]
     ctl = '/opt/bin/rustdeskctl'
@@ -96,7 +96,7 @@ def main():
     for pid in json.loads(STATE.read_text()).values():
         assert Path('/proc',str(pid)).stat().st_uid == cfg['uid']
     command('ip','netns','exec','rdeclient',sys.executable,
-            ROOT/'tests/native_smoke.py','192.0.2.2',DATA/'id_ed25519.pub')
+            ROOT/'tests/native_smoke.py','192.0.2.1',DATA/'id_ed25519.pub')
     command(*installer,env=env)
     assert saved == fingerprint(), 'Repeat install changed identity/config'
     before = json.loads(STATE.read_text())['hbbr']
