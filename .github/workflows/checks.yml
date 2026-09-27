@@ -20,12 +20,14 @@ jobs:
       - name: Bootstrap is reproducible
         run: |
           python3 tools/build_bootstrap.py
-          git diff --exit-code -- install.sh
+          git diff --exit-code -- install.sh release.json
   arm64-integration:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Prepare disposable ARM64 network and Entware path facade
         run: |
           sudo apt-get update -qq

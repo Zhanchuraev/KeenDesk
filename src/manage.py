@@ -14,7 +14,7 @@ import tarfile
 import time
 from common import (CONF, DATA, LOGS, RUN, INIT, HOOK, MARKER, CONFIG, PID,
     STATE, PENDING, assert_managed, atomic_json, client_settings, load_config,
-    process_matches, run, validate)
+    process_matches, run, validate, CRASH, WEB_CONFIG, WEB_PID)
 
 
 def alive():
@@ -39,11 +39,15 @@ def status(verbose=True):
         print('Supervisor PID='+str(pid))
         for name,child in state.items(): print(name+' PID='+str(child))
         print('Работает.' if ready else 'Ожидание сети/firewall; см. supervisor.log.')
+        if CRASH.exists() and json.loads(CRASH.read_text()).get('halted'):
+            print('БЛОКИРОВКА: повторные падения. Сначала logs / doctor, затем restart.')
     return ready
 
 
 def start():
     if not alive():
+        if (LOGS/'startup.log').exists() and (LOGS/'startup.log').stat().st_size > 2*1024*1024:
+            os.replace(LOGS/'startup.log',LOGS/'startup.log.1')
         log = open(LOGS/'startup.log','ab')
         subprocess.Popen(['/opt/bin/python3',str(CONF/'supervisor.py')],stdin=subprocess.DEVNULL,
                          stdout=log,stderr=log,start_new_session=True,close_fds=True)
@@ -51,6 +55,8 @@ def start():
     for _ in range(20):
         if status(False):
             print('RustDesk запущен.')
+            from web import start_web
+            start_web()
             return
         time.sleep(1)
     if alive():
@@ -60,6 +66,8 @@ def start():
 
 
 def stop():
+    from web import stop_web
+    stop_web()
     pid = alive()
     if pid:
         os.kill(pid,signal.SIGTERM)
@@ -90,7 +98,7 @@ def backup():
     root.chmod(0o700)
     archive = root / ('backup-'+datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')+'.private.tar.gz')
     with tarfile.open(archive,'w:gz') as tar:
-        for path in (CONF,DATA,LOGS,INIT,HOOK,Path('/opt/bin/rustdeskctl')):
+        for path in (CONF,DATA,LOGS,INIT,HOOK,Path('/opt/bin/rustdeskctl'),Path('/opt/sbin/hbbs'),Path('/opt/sbin/hbbr')):
             if path.exists(): tar.add(path,arcname=str(path).lstrip('/'))
     archive.chmod(0o600)
     print('Закрытая резервная копия: '+str(archive))
@@ -102,15 +110,31 @@ def main():
     if os.geteuid() != 0: raise RuntimeError('Запустите от root в Entware.')
     assert_managed()
     parser = argparse.ArgumentParser(description='RustDesk Server в Entware')
-    parser.add_argument('command',choices=['start','stop','restart','status','check','reconfigure','client','logs','backup','configure','uninstall'])
+    parser.add_argument('command',choices=['start','boot','stop','restart','status','check','doctor','reconfigure','client','logs','backup','configure','uninstall','update','rollback','web','web-token'])
     parser.add_argument('--address')
     parser.add_argument('--interfaces',help='Linux-интерфейсы через пробел, в кавычках')
     parser.add_argument('--networks',help='IPv4 CIDR через пробел; пустая строка снимает ограничение источника')
     parser.add_argument('--direct',choices=['off','xkeen'])
     parser.add_argument('--yes',action='store_true',help='Подтверждение удаления с резервной копией')
+    parser.add_argument('--json',action='store_true',help='Машиночитаемый отчёт doctor')
+    parser.add_argument('--version',help='Тег обновления vX.Y.Z; по умолчанию последний стабильный релиз')
+    parser.add_argument('--listen',help='IPv4 веб-панели: localhost или адрес разрешённого VPN-интерфейса')
+    parser.add_argument('--interface',help='Точный VPN-интерфейс веб-панели (zt/tun/tap/ppp)')
+    parser.add_argument('--disable',action='store_true',help='Выключить веб-панель')
     args = parser.parse_args()
     if args.command in ('status','check'):
         return 0 if status() else 1
+    if args.command == 'doctor':
+        import doctor
+        report = doctor.inspect()
+        if args.json: print(json.dumps(report,ensure_ascii=False,indent=2))
+        else: doctor.display(report)
+        return 0 if report['ok'] else 1
+    if args.command == 'update':
+        from update import download_release
+        download_release(args.version); return 0
+    if args.command == 'web-token':
+        print(json.loads(WEB_CONFIG.read_text())['token']); return 0
     if args.command == 'client':
         print(client_settings(load_config())); return 0
     if args.command == 'logs':
@@ -121,9 +145,21 @@ def main():
         return 0
     lock = open(RUN/'rustdesk-control.lock','a')
     fcntl.flock(lock,fcntl.LOCK_EX)
-    if args.command == 'start': start()
+    if args.command == 'boot': start()
+    elif args.command == 'start':
+        if CRASH.exists(): stop(); CRASH.unlink(missing_ok=True)
+        start()
     elif args.command == 'stop': stop()
-    elif args.command == 'restart': stop(); start()
+    elif args.command == 'restart': stop(); CRASH.unlink(missing_ok=True); start()
+    elif args.command == 'web':
+        from web import configure_web
+        configure_web(args.listen,args.interface,args.disable)
+    elif args.command == 'rollback':
+        if not args.yes: raise RuntimeError('rollback --yes вернёт предыдущую версию и базу на момент обновления; текущая база будет сохранена в backup')
+        from update import rollback
+        rollback()
+        fcntl.flock(lock,fcntl.LOCK_UN)
+        os.execv('/opt/bin/python3',['/opt/bin/python3',str(CONF/'manage.py'),'start'])
     elif args.command == 'reconfigure': PENDING.touch(mode=0o600)
     elif args.command == 'backup':
         was_running = bool(alive())

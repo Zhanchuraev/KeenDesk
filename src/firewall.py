@@ -59,7 +59,7 @@ def reconcile_input(binary, cfg, ipv6=False):
 def jump_first(binary, table, chain, rule):
     existing = rules(binary, table, chain)
     # The first two entries are both ours for INPUT, just one for OUTPUT.
-    count = 2 if chain == 'INPUT' else 1
+    count = 3 if chain == 'INPUT' else 1
     hits = [i for i, x in enumerate(existing, 1) if x == rule]
     if hits and hits[0] <= count:
         for index in reversed(hits[1:]):
@@ -118,9 +118,13 @@ def apply(cfg):
     for binary, ipv6 in binaries():
         reconcile_input(binary, cfg, ipv6)
         reconcile_output(binary, cfg, ipv6)
+    from web import apply_web_rules
+    apply_web_rules()
 
 
 def remove():
+    from web import remove_web_rules
+    remove_web_rules()
     for binary, _ in binaries():
         for table, parent, chain in [('filter','INPUT',INPUT), ('mangle','OUTPUT',OUTPUT), ('nat','OUTPUT',NAT)]:
             if ipt(binary, table, '-S', chain, check=False).returncode:

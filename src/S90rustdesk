@@ -1,7 +1,14 @@
 #!/opt/bin/sh
 PATH=/opt/bin:/opt/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
+if [ -f /opt/var/lib/keendesk-update/pending.json ]; then
+    /opt/bin/python3 /opt/var/lib/keendesk-update/recover.py || exit 1
+    exec /opt/etc/init.d/S90rustdesk "$@"
+fi
 case "$1" in
+    start)
+        if grep -q "'boot'" /opt/etc/rustdesk/manage.py; then rd_command=boot; else rd_command=start; fi
+        exec /opt/bin/python3 /opt/etc/rustdesk/manage.py "$rd_command";;
     kill) exec /opt/bin/python3 /opt/etc/rustdesk/manage.py stop;;
     *) exec /opt/bin/python3 /opt/etc/rustdesk/manage.py "$@";;
 esac

@@ -1,5 +1,5 @@
 #!/opt/bin/python3
-"""Fresh installation only. Existing keys/configuration are never overwritten."""
+"""Fresh install or explicit transactional upgrade; retain existing identity."""
 import argparse
 import hashlib
 import io
@@ -154,7 +154,9 @@ def deploy(cfg,binaries):
             for path in (CONF,DATA,LOGS):
                 path.mkdir(mode=0o700,parents=True); created.append(path)
             os.chown(DATA,cfg['uid'],cfg['uid'])
-            for name in ('common.py','firewall.py','supervisor.py','manage.py'):
+            from update import FILES, boot_guard
+            for name in FILES:
+                if name in ('install.py','S90rustdesk','90-rustdesk.sh','rustdeskctl'): continue
                 shutil.copyfile(PAYLOAD/name,CONF/name)
                 (CONF/name).chmod(0o600)
             atomic_json(CONFIG,cfg)
@@ -213,6 +215,7 @@ def main():
     os.umask(0o077)
     parser=argparse.ArgumentParser(description='Установщик RustDesk Server для Keenetic ARM64 + Entware')
     parser.add_argument('--check',action='store_true',help='Проверить среду и план; сервер не устанавливать')
+    parser.add_argument('--upgrade',action='store_true',help='Обновить управляемую установку, сохранив ключи и снимок отката')
     args=parser.parse_args()
     system_preflight()
     RUN.mkdir(parents=True,exist_ok=True)
@@ -220,6 +223,11 @@ def main():
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     if MARKER.exists():
         assert_managed()
+        if args.upgrade and not args.check:
+            from update import upgrade
+            Path('/opt/var/tmp').mkdir(parents=True,exist_ok=True)
+            upgrade(PAYLOAD,download_binaries())
+            return
         print('RustDesk уже установлен. Ключи и конфигурация сохранены.')
         print(client_settings(load_config()))
         return
@@ -232,7 +240,7 @@ def main():
     binaries=download_binaries()
     deploy(cfg,binaries)
     print(client_settings(cfg))
-    print('Управление: rustdeskctl status | client | logs | restart | backup')
+    print('Управление: rustdeskctl doctor | client | logs | restart | backup | update | web')
     print('Удаление с резервной копией: rustdeskctl uninstall --yes')
 
 

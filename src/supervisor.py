@@ -9,6 +9,7 @@ import signal
 import subprocess
 import time
 from common import CONF, DATA, LOGS, RUN, PID, STATE, PENDING, atomic_json, load_config
+from restarts import Budget, WINDOW
 
 
 def main():
@@ -20,6 +21,7 @@ def main():
     except BlockingIOError:
         return
     cfg = load_config()
+    budget = Budget()
     PID.write_text(str(os.getpid()))
     LOGS.mkdir(mode=0o700, parents=True, exist_ok=True)
     def logger(name):
@@ -71,6 +73,7 @@ def main():
         children.clear()
         save_state()
     next_firewall, firewall_ready = 0, False
+    healthy_since = None
     audit.info('Started; uid=%s; relay=%s:21117',cfg['uid'],cfg['address'])
     save_state()
     try:
@@ -97,17 +100,27 @@ def main():
                     firewall_ready = False
                     next_firewall = time.monotonic()+5
             if not firewall_ready:
+                healthy_since = None
                 time.sleep(.5)
+                continue
+            if budget.halted:
+                if children:
+                    audit.error('Restart budget exhausted; services halted. Inspect logs, then rustdeskctl restart.')
+                    stop_children()
+                drain(.5)
                 continue
             for name,args in services.items():
                 p = children.get(name)
                 if p is not None and p.poll() is None:
                     continue
                 if p is not None:
-                    audit.warning('%s exited %s; restart in 5 seconds',name,p.returncode)
+                    delay = budget.failure(name,p.returncode)
+                    healthy_since = None
+                    audit.warning('%s exited %s; delay=%ss; halted=%s',name,p.returncode,delay,budget.halted)
                     del children[name]
-                    next_start[name] = time.monotonic()+5
+                    next_start[name] = time.monotonic()+delay
                     save_state()
+                    if budget.halted: break
                 if time.monotonic() < next_start.get(name,0):
                     continue
                 if name == 'hbbr' and not (DATA/'id_ed25519.pub').exists():
@@ -115,12 +128,23 @@ def main():
                 env = dict(os.environ,RUST_LOG='info',HOME=str(DATA))
                 for var in ('http_proxy','https_proxy','all_proxy','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY'):
                     env.pop(var,None)
-                p = subprocess.Popen(args,cwd=DATA,env=env,stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE,stderr=subprocess.STDOUT,preexec_fn=demote,start_new_session=True)
+                try:
+                    p = subprocess.Popen(args,cwd=DATA,env=env,stdin=subprocess.DEVNULL,
+                        stdout=subprocess.PIPE,stderr=subprocess.STDOUT,preexec_fn=demote,start_new_session=True)
+                except OSError as exc:
+                    next_start[name] = time.monotonic()+budget.failure(name,str(exc))
+                    healthy_since = None
+                    audit.error('%s start failed: %s; halted=%s',name,exc,budget.halted)
+                    if budget.halted: break
+                    continue
                 children[name] = p
                 poller.register(p.stdout,selectors.EVENT_READ,name)
                 audit.info('%s started, PID=%s',name,p.pid)
                 save_state()
+            if len(children) == 2 and all(p.poll() is None for p in children.values()):
+                if healthy_since is None: healthy_since = time.monotonic()
+                if time.monotonic()-healthy_since >= WINDOW: budget.stable()
+            else: healthy_since = None
             drain(.5)
     finally:
         stop_children()

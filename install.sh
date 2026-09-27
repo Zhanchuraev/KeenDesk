@@ -1,5 +1,5 @@
 #!/bin/sh
-# rustdesk-entware 0.1.0. Download to a file before running; see README.md.
+# KeenDesk 0.2.0. Download to a file before running; see README.md.
 set -eu
 PATH=/opt/bin:/opt/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
@@ -12,7 +12,7 @@ if [ -e /opt/etc/rustdesk ] && [ ! -f /opt/etc/rustdesk/managed.json ]; then
     exit 1
 fi
 rd_deps=''
-if ! /opt/bin/python3 -c 'import argparse, fcntl, grp, pwd, hashlib, json, logging.handlers, selectors, ssl, tarfile, urllib.request, zipfile' 2>/dev/null; then
+if ! /opt/bin/python3 -c 'import argparse, fcntl, grp, pwd, hashlib, json, logging.handlers, selectors, ssl, sqlite3, secrets, http.server, tarfile, urllib.request, zipfile' 2>/dev/null; then
     rd_deps="$rd_deps python3 ca-bundle"
 fi
 command -v iptables >/dev/null 2>&1 || rd_deps="$rd_deps iptables"
@@ -27,17 +27,24 @@ done
 rd_stage=$(mktemp -d /tmp/rustdesk-entware.XXXXXX)
 trap 'rm -rf "$rd_stage"' EXIT
 trap 'exit 130' HUP INT TERM
-rd_base='https://raw.githubusercontent.com/Zhanchuraev/rustdesk-entware/v0.1.0/src'
+rd_base='https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.0/src'
 while read -r rd_hash rd_file; do
     curl --fail --show-error --silent --location --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 90 "$rd_base/$rd_file" -o "$rd_stage/$rd_file"
     (cd "$rd_stage" && printf '%s  %s\n' "$rd_hash" "$rd_file" | sha256sum -c -)
 done <<'CHECKSUMS'
-516513cdd15cc814ce15f1af6f88cbba00e1a0298b4a6e2bf6259a70e3f3d8d2 common.py
-aaff7403bfd815a143500997160affd99cf9d4d355d6e609ba7299d2ea15fbf6 install.py
-0c4e7b81f4d467c89546e9f2692b25a4dc5e534a35f5fa67a0435420e54e6670 firewall.py
-ba5bed200725bd64740dc333f4eebf663f50e27d72531c8236af1c897b0b32b3 supervisor.py
-dc75930e52a5b98b277613010b15f81201ff3a31ec61578541936b64a8739b91 manage.py
-d774662d25e93dca96336b7217a9fe590c96a5125623330b328fc6fbb9b9efea S90rustdesk
+13237203e7a17dac7d8b5e3975d23944e10715b5cf294955757692734f6dc5e7 common.py
+c9ade6160fda0ded62997e295f7efb49b1a2a83011f3ec9246280589630e3815 install.py
+8cec6177e68b93ba4f633535ea5ee87dad39870ab4c9560daf95d662e7545fd4 firewall.py
+c252fa6dd95a1708d890a745ee31c85eab2415f9c15908a73e32e3a17111a906 supervisor.py
+93addad8d6cbd69b53a5271a16dad82cafd665c0f173c252ae7ba988e0c2a637 manage.py
+ac92c46a7cef942743a9794fcb297a7a137df35e9937bc003bc04c9b62770e21 health.py
+a25b696016b8ef6356d9f4b720cbd12980dd09379fe1a7e556b874ddde460153 doctor.py
+1848f1f1aaf4cf4729fcd9a63e0c5e9215a56b14a90b7b8f073514ba4e17e87e restarts.py
+f38b4a802178174a61a1259d39545c05a73c3af4897b91dc3683ffe9a2d05cb3 recover.py
+efd26a1d6ec608fa7619f86a57e0fffface150c3f7a717148e9b188c50bb3f79 update.py
+6ba850b874fbcfc46bfc8730fc15807aa86b5f64cf2f73c99b585dcf3cb129fc web.py
+c65ef2677960424a885a8e7bf21e147ec933ec0383d25a72b9c88f8e67344294 index.html
+23c9c47cdb829a38692dcd0de4b5c645a72051a28c45f0a32e60da108c58ec70 S90rustdesk
 eb8e945cd02e6f8d5032eea15b267cca789e569d72777650850e7f21a6e3f3ea 90-rustdesk.sh
 93b56ea6944ddd1551a0ccbe8eaae643ed7ad0114e71571c6a127dce7d7649b7 rustdeskctl
 CHECKSUMS

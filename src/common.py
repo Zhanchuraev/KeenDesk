@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 UPSTREAM_VERSION = '1.1.16'
 UPSTREAM_URL = ('https://github.com/rustdesk/rustdesk-server/releases/download/'
                 + UPSTREAM_VERSION + '/rustdesk-server-linux-arm64v8.zip')
@@ -22,6 +22,11 @@ CONFIG = CONF / 'server.json'
 PID = RUN / 'rustdesk.pid'
 STATE = RUN / 'rustdesk-processes.json'
 PENDING = RUN / 'rustdesk-firewall.pending'
+CRASH = CONF / 'crash-state.json'
+WEB_CONFIG = CONF / 'web.json'
+WEB_PID = RUN / 'keendesk-web.pid'
+UPDATE_ROOT = Path('/opt/var/lib/keendesk-update')
+# Kept deliberately: v0.1.0 installations must remain recognizable after the rename.
 OWNER = 'Zhanchuraev/rustdesk-entware'
 
 
@@ -94,7 +99,7 @@ def process_matches(pid, executable):
     try:
         args = Path('/proc', str(int(pid)), 'cmdline').read_bytes().split(b'\0')
         return os.fsencode(str(executable)) in args
-    except (FileNotFoundError, ValueError):
+    except (OSError, ValueError):
         return False
 
 
