@@ -73,6 +73,7 @@ def main():
         children.clear()
         save_state()
     next_firewall, firewall_ready = 0, False
+    next_web, web_waiting = 0, False
     healthy_since = None
     audit.info('Started; uid=%s; relay=%s:21117',cfg['uid'],cfg['address'])
     save_state()
@@ -103,6 +104,16 @@ def main():
                 healthy_since = None
                 time.sleep(.5)
                 continue
+            if time.monotonic() >= next_web:
+                next_web = time.monotonic()+30
+                try:
+                    from web import reconcile_web
+                    reconcile_web()
+                    if web_waiting: audit.info('Dashboard startup condition cleared')
+                    web_waiting = False
+                except Exception as exc:
+                    if not web_waiting: audit.warning('Dashboard waiting; retry every 30s: %s',exc)
+                    web_waiting = True
             if budget.halted:
                 if children:
                     audit.error('Restart budget exhausted; services halted. Inspect logs, then rustdeskctl restart.')

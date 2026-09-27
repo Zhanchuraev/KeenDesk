@@ -112,6 +112,20 @@ def start_web():
         raise RuntimeError('Веб-панель не достигла готовности за 10 секунд; см. web-startup.log')
 
 
+def reconcile_web():
+    """Retry optional dashboard after VPN appears, without racing management."""
+    import fcntl
+    from common import RUN
+    with open(RUN/'rustdesk-control.lock','a') as lock:
+        try: fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError: return
+        value = config()
+        if not value.get('enabled') or web_alive(): return
+        # Missing VPN is checked before spawning; no rapid child restart loop.
+        validate_listen(value['listen'],value.get('interface'),load_config())
+        start_web()
+
+
 def configure_web(address,interface,disable):
     old = config()
     if address is None and not disable and old.get('enabled'):

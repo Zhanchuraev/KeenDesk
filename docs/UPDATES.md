@@ -5,7 +5,7 @@
 Старая версия не знает команду `update`. Для первого перехода в SSH Entware выполните:
 
 ```sh
-(set -eu; rd_setup="$(mktemp /tmp/keendesk-update.XXXXXX)"; trap 'rm -f "$rd_setup"' EXIT; curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.1/install.sh -o "$rd_setup"; /bin/sh "$rd_setup" --upgrade)
+(set -eu; rd_setup="$(mktemp /tmp/keendesk-update.XXXXXX)"; trap 'rm -f "$rd_setup"' EXIT; curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.2/install.sh -o "$rd_setup"; /bin/sh "$rd_setup" --upgrade)
 ```
 
 Для новой установки используется обычная команда из README, без `--upgrade`. Повторный запуск без этого флага ничего не обновляет: показывает действующие настройки. Чужая установка без маркера KeenDesk автоматически не мигрируется.
@@ -15,12 +15,12 @@
 ```sh
 rustdeskctl update
 # Либо конкретный стабильный тег:
-rustdeskctl update --version v0.2.1
+rustdeskctl update --version v0.2.2
 ```
 
 Команда получает последний стабильный GitHub Release. Расписание обновлений не создаётся. Если выбранная версия уже установлена или старее текущей, изменений не будет. Если GitHub API ограничил запросы, укажите конкретный опубликованный тег.
 
-Обновление KeenDesk не означает установку самой новой версии RustDesk Server: версия `hbbs`/`hbbr` закреплена в каждом релизе KeenDesk. В 0.2.0 это по-прежнему OSS 1.1.16.
+Обновление KeenDesk не означает установку самой новой версии RustDesk Server: версия `hbbs`/`hbbr` закреплена в каждом релизе KeenDesk. В 0.2.2 это по-прежнему OSS 1.1.16.
 
 ## Что делает обновление
 

@@ -39,7 +39,7 @@ def main():
     assert os.environ.get('GITHUB_ACTIONS') == 'true'
     assert os.environ.get('RUNNER_ARCH') == 'ARM64' and os.geteuid() == 0
     assert not CONF.exists(), 'Never test over an existing installation'
-    env = dict(os.environ,RD_ADDRESS='192.0.2.1',RD_INTERFACES='rdeserver',
+    env = dict(os.environ,RD_ADDRESS='192.0.2.2',RD_INTERFACES='rdeserver',
                RD_NETWORKS='192.0.2.0/30',RD_XKEEN='off')
     installer = [sys.executable,str(ROOT/'src/install.py')]
     ctl = '/opt/bin/rustdeskctl'
@@ -68,7 +68,7 @@ def main():
         p.write_text(p.read_text().replace('def required(key):','def required(key):\n    time.sleep(120)'))
         process = subprocess.Popen([sys.executable,str(interrupted/'install.py'),'--upgrade'],env=env)
         try:
-            wait_until(lambda: (UPDATE_ROOT/'pending.json').exists() and json.loads(MARKER.read_text())['version']=='0.2.1',timeout=120)
+            wait_until(lambda: (UPDATE_ROOT/'pending.json').exists() and json.loads(MARKER.read_text())['version']=='0.2.2',timeout=120)
             process.kill(); process.wait(timeout=10)
         finally:
             if process.poll() is None: process.kill(); process.wait()
@@ -96,7 +96,7 @@ def main():
     for pid in json.loads(STATE.read_text()).values():
         assert Path('/proc',str(pid)).stat().st_uid == cfg['uid']
     command('ip','netns','exec','rdeclient',sys.executable,
-            ROOT/'tests/native_smoke.py','192.0.2.1',DATA/'id_ed25519.pub')
+            ROOT/'tests/native_smoke.py','192.0.2.2',DATA/'id_ed25519.pub')
     command(*installer,env=env)
     assert saved == fingerprint(), 'Repeat install changed identity/config'
     before = json.loads(STATE.read_text())['hbbr']
@@ -133,6 +133,20 @@ def main():
     command(ctl,'web','--listen','192.168.250.1','--interface','ztci0')
     command('ip','netns','exec','rdeclient',sys.executable,'-c',
             'import urllib.request; assert b"KeenDesk" in urllib.request.urlopen("http://192.168.250.1:18082/",timeout=5).read()')
+    # A router can launch Entware before ZeroTier acquires its address.
+    command(ctl,'stop')
+    command('ip','addr','del','192.168.250.1/30','dev','ztci0')
+    subprocess.run(['/opt/etc/init.d/S90rustdesk','start'],check=False)
+    command(ctl,'status')
+    time.sleep(2)
+    command('ip','addr','add','192.168.250.1/30','dev','ztci0')
+    def panel_ready():
+        try:
+            with urllib.request.urlopen('http://192.168.250.1:18082/',timeout=2) as response:
+                return b'KeenDesk' in response.read()
+        except OSError: return False
+    wait_until(panel_ready,timeout=50)
+    print('PASS dashboard starts automatically after delayed VPN address',flush=True)
     command(ctl,'web','--disable')
     command('ip','link','set','ztci0','name','rdeserver')
     command(ctl,'configure','--interfaces','rdeserver','--networks','192.0.2.0/30')
@@ -177,7 +191,7 @@ def main():
     command(*installer,env=env)
     command(ctl,'doctor')
     command(ctl,'uninstall','--yes')
-    print('PASS clean v0.2.1 installation and uninstall',flush=True)
+    print('PASS clean v0.2.2 installation and uninstall',flush=True)
 
 
 if __name__ == '__main__': main()

@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 UPSTREAM_VERSION = '1.1.16'
 UPSTREAM_URL = ('https://github.com/rustdesk/rustdesk-server/releases/download/'
                 + UPSTREAM_VERSION + '/rustdesk-server-linux-arm64v8.zip')
