@@ -11,3 +11,5 @@ managed.json
 client-settings*
 .env
 artifacts/
+web.json
+crash-state.json

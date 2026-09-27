@@ -32,7 +32,7 @@
 В SSH-shell Entware выполните:
 
 ```sh
-(set -eu; /opt/bin/opkg update; /opt/bin/opkg install curl ca-bundle; rd_setup="$(mktemp /tmp/rustdesk-install.XXXXXX)"; trap 'rm -f "$rd_setup"' EXIT; curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.0/install.sh -o "$rd_setup"; /bin/sh "$rd_setup")
+(set -eu; /opt/bin/opkg update; /opt/bin/opkg install curl ca-bundle; rd_setup="$(mktemp /tmp/rustdesk-install.XXXXXX)"; trap 'rm -f "$rd_setup"' EXIT; curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.1/install.sh -o "$rd_setup"; /bin/sh "$rd_setup")
 ```
 
 Команда скачивает завершённый файл и только после успешной загрузки запускает его. Установщик проверяет контрольные суммы своих служебных файлов, скачивает закреплённую версию **RustDesk Server OSS 1.1.16** из официального GitHub Releases, проверяет SHA-256 и тип ARM64 ELF. Глобальный `opkg upgrade` не выполняется.
@@ -46,7 +46,7 @@
 При необходимости можно сначала скачать `install.sh`, а затем передать настройки:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.0/install.sh -o /tmp/rustdesk-entware-install.sh
+curl -fsSL https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.1/install.sh -o /tmp/rustdesk-entware-install.sh
 RD_ADDRESS=10.147.17.1 RD_INTERFACES=zt0 RD_NETWORKS=10.147.17.0/24 /bin/sh /tmp/rustdesk-entware-install.sh
 ```
 
@@ -200,7 +200,7 @@ rustdeskctl uninstall --yes
 
 ## Где хранятся файлы для установки
 
-1. Этот GitHub-репозиторий — bootstrap, Python-скрипты и инструкция. Команда закреплена на теге `v0.2.0`.
+1. Этот GitHub-репозиторий — bootstrap, Python-скрипты и инструкция. Команда закреплена на теге `v0.2.1`.
 2. Официальный GitHub Releases RustDesk — архив сервера 1.1.16 с закреплённым SHA-256.
 3. Репозиторий Entware, настроенный на вашем роутере, — зависимости.
 4. Ваш роутер — индивидуальные настройки, ключи, база и журналы.

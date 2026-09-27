@@ -6,7 +6,7 @@ import sys
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import urllib.error
 import urllib.request
 
@@ -76,6 +76,22 @@ class UpdateTests(unittest.TestCase):
 
 
 class WebTests(unittest.TestCase):
+    def test_slow_start_waits_for_pid_and_timeout_reaps_unrecorded_child(self):
+        with tempfile.TemporaryDirectory() as root:
+            process = Mock(pid=4242)
+            process.poll.return_value = None
+            with patch.object(web,'LOGS',Path(root)),patch.object(web,'WEB_PID',Path(root)/'web.pid'), \
+                 patch.object(web,'config',return_value={'enabled':True}), \
+                 patch.object(web.subprocess,'Popen',return_value=process),patch.object(web.time,'sleep') as sleep:
+                with patch.object(web,'web_alive',side_effect=[None]+[None]*12+[4242]):
+                    web.start_web()
+                self.assertEqual(sleep.call_count,12)
+                process.terminate.assert_not_called()
+                with patch.object(web,'web_alive',return_value=None):
+                    with self.assertRaisesRegex(RuntimeError,'10 секунд'): web.start_web()
+                process.terminate.assert_called_once()
+                process.wait.assert_called_once()
+
     def test_no_wan_or_wildcard_listener(self):
         cfg = dict(interfaces=['zt0'],networks=[])
         for addr,iface in [('0.0.0.0','zt0'),('8.8.8.8','zt0'),('192.168.1.1','br0'),('192.168.1.1','zt1')]:

@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ['common.py','install.py','firewall.py','supervisor.py','manage.py','health.py','doctor.py','restarts.py','recover.py','update.py','web.py','index.html','S90rustdesk','90-rustdesk.sh','rustdeskctl']
 header = '''#!/bin/sh
-# KeenDesk 0.2.0. Download to a file before running; see README.md.
+# KeenDesk 0.2.1. Download to a file before running; see README.md.
 set -eu
 PATH=/opt/bin:/opt/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
@@ -34,7 +34,7 @@ done
 rd_stage=$(mktemp -d /tmp/rustdesk-entware.XXXXXX)
 trap 'rm -rf "$rd_stage"' EXIT
 trap 'exit 130' HUP INT TERM
-rd_base='https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.0/src'
+rd_base='https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.2.1/src'
 while read -r rd_hash rd_file; do
     curl --fail --show-error --silent --location --proto '=https' --tlsv1.2 --connect-timeout 15 --max-time 90 "$rd_base/$rd_file" -o "$rd_stage/$rd_file"
     (cd "$rd_stage" && printf '%s  %s\\n' "$rd_hash" "$rd_file" | sha256sum -c -)
@@ -43,5 +43,5 @@ done <<'CHECKSUMS'
 checksums = ''.join(hashlib.sha256((ROOT/'src'/name).read_bytes()).hexdigest()+' '+name+'\n' for name in FILES)
 footer = "CHECKSUMS\n/opt/bin/python3 \"$rd_stage/install.py\" \"$@\"\n"
 (ROOT/'install.sh').write_text(header+checksums+footer,encoding='utf-8',newline='\n')
-(ROOT/'release.json').write_text(json.dumps(dict(version='0.2.0',files={name:hashlib.sha256((ROOT/'src'/name).read_bytes()).hexdigest() for name in FILES}),indent=2)+'\n',encoding='utf-8',newline='\n')
+(ROOT/'release.json').write_text(json.dumps(dict(version='0.2.1',files={name:hashlib.sha256((ROOT/'src'/name).read_bytes()).hexdigest() for name in FILES}),indent=2)+'\n',encoding='utf-8',newline='\n')
 print('install.sh generated with',len(FILES),'pinned payload checksums')

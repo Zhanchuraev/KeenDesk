@@ -68,7 +68,7 @@ def main():
         p.write_text(p.read_text().replace('def required(key):','def required(key):\n    time.sleep(120)'))
         process = subprocess.Popen([sys.executable,str(interrupted/'install.py'),'--upgrade'],env=env)
         try:
-            wait_until(lambda: (UPDATE_ROOT/'pending.json').exists() and json.loads(MARKER.read_text())['version']=='0.2.0',timeout=120)
+            wait_until(lambda: (UPDATE_ROOT/'pending.json').exists() and json.loads(MARKER.read_text())['version']=='0.2.1',timeout=120)
             process.kill(); process.wait(timeout=10)
         finally:
             if process.poll() is None: process.kill(); process.wait()
@@ -177,7 +177,7 @@ def main():
     command(*installer,env=env)
     command(ctl,'doctor')
     command(ctl,'uninstall','--yes')
-    print('PASS clean v0.2.0 installation and uninstall',flush=True)
+    print('PASS clean v0.2.1 installation and uninstall',flush=True)
 
 
 if __name__ == '__main__': main()

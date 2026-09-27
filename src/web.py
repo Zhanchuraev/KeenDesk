@@ -96,8 +96,20 @@ def start_web():
     if config().get('enabled') and not web_alive():
         with open(LOGS/'web-startup.log','ab') as log:
             if log.tell() > 1024*1024: log.truncate(0)
-            subprocess.Popen(['/opt/bin/python3',str(CONF/'web.py')],stdin=subprocess.DEVNULL,
-                             stdout=log,stderr=log,start_new_session=True,close_fds=True)
+            process = subprocess.Popen(['/opt/bin/python3',str(CONF/'web.py')],stdin=subprocess.DEVNULL,
+                                       stdout=log,stderr=log,start_new_session=True,close_fds=True)
+        # Imports/startup on an embedded CPU can exceed 500 ms. Retain the child
+        # handle until readiness so timeout cleanup also catches an unrecorded child.
+        for _ in range(100):
+            if web_alive() == process.pid: return
+            if process.poll() is not None: break
+            time.sleep(.1)
+        if process.poll() is None:
+            process.terminate()
+            try: process.wait(timeout=3)
+            except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=3)
+        WEB_PID.unlink(missing_ok=True)
+        raise RuntimeError('Веб-панель не достигла готовности за 10 секунд; см. web-startup.log')
 
 
 def configure_web(address,interface,disable):
