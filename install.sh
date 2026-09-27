@@ -33,7 +33,7 @@ while read -r rd_hash rd_file; do
     (cd "$rd_stage" && printf '%s  %s\n' "$rd_hash" "$rd_file" | sha256sum -c -)
 done <<'CHECKSUMS'
 13237203e7a17dac7d8b5e3975d23944e10715b5cf294955757692734f6dc5e7 common.py
-fd192c60f9d445730dcc9a5bf8c2ef0ec198d0e88e755b67fecc89df778931ca install.py
+9686724b1dfe41bee73ffb471cbbc7640c51ed0967aa160e36d37636d8ed3c99 install.py
 8cec6177e68b93ba4f633535ea5ee87dad39870ab4c9560daf95d662e7545fd4 firewall.py
 e68c7a383882c32ed1226de17dbaecc23d9041cc4ddd1f8ecd22254fbcf59417 supervisor.py
 93addad8d6cbd69b53a5271a16dad82cafd665c0f173c252ae7ba988e0c2a637 manage.py

@@ -178,6 +178,7 @@ def deploy(cfg,binaries):
             private = DATA/'id_ed25519'
             if not private.exists(): raise RuntimeError('Сервер не создал ключ.')
             private.chmod(0o600)
+            (DATA/'id_ed25519.pub').chmod(0o600)
             # hbbs reserves loopback:21115 for its text administration protocol.
             # The main TCP listener accepts TestNatRequest on loopback too.
             with socket.create_connection(('127.0.0.1',21116),timeout=5) as probe:
