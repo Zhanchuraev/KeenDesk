@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import subprocess
 import time
 
 ROOT = Path('/opt/var/lib/keendesk-update')
@@ -82,6 +83,20 @@ def stop_recorded_services():
 def restore(record):
     payload = validate_snapshot(record)  # Verify every byte BEFORE stopping/deleting anything.
     stop_recorded_services()
+    # v0.1.0 does not know the optional panel chain. Remove only our exact
+    # reference before restoring either version; its firewall recreates it if enabled.
+    for binary in ('iptables','ip6tables'):
+        if not shutil.which(binary): continue
+        base = [binary,'-w','-t','filter']
+        def command(args): return subprocess.run(base+args,capture_output=True,text=True,timeout=20)
+        if command(['-S','RDW_INPUT']).returncode: continue
+        import shlex
+        for line in command(['-S','INPUT']).stdout.splitlines():
+            row = shlex.split(line)
+            if row[:2] == ['-A','INPUT'] and row[-2:] == ['-j','RDW_INPUT']:
+                if command(['-D','INPUT',*row[2:]]).returncode: raise RuntimeError('Не удалось убрать правило веб-панели')
+        for args in (['-F','RDW_INPUT'],['-X','RDW_INPUT']):
+            if command(args).returncode: raise RuntimeError('Не удалось удалить цепочку веб-панели')
     for name in TARGETS:
         # Keep the already-installed recovery guard until the transaction is fully
         # restored. It also understands the older v0.1 manager's start command.

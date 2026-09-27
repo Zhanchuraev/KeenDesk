@@ -80,9 +80,11 @@ def main():
     command(*installer,'--upgrade',env=env)
     assert fingerprint() == initial
     command(ctl,'doctor','--json')
+    command(ctl,'web')
     command(ctl,'rollback','--yes')
     assert json.loads(MARKER.read_text())['version'] == '0.1.0'
     assert fingerprint() == initial
+    assert 'RDW_INPUT' not in run(['iptables','-S']).stdout
     command(*installer,'--upgrade',env=env)
     command(ctl,'doctor')
     print('PASS upgrade, explicit rollback, re-upgrade; keys/config unchanged',flush=True)

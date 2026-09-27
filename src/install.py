@@ -45,7 +45,7 @@ def fresh_preflight():
         raise RuntimeError('Нужно не менее 128 МиБ свободного места на /opt.')
     for binary in ('iptables','ip6tables'):
         if shutil.which(binary):
-            for table,chain in [('filter','RDE_INPUT'),('mangle','RDE_OUTPUT'),('nat','RDE_NAT')]:
+            for table,chain in [('filter','RDE_INPUT'),('filter','RDW_INPUT'),('mangle','RDE_OUTPUT'),('nat','RDE_NAT')]:
                 if run([binary,'-t',table,'-S',chain],check=False).returncode == 0:
                     raise RuntimeError('Уже есть чужая/оставшаяся цепочка '+chain+'; требуется ручная проверка.')
     for port,kind in [(p,socket.SOCK_STREAM) for p in range(21115,21120)]+[(21116,socket.SOCK_DGRAM)]:
