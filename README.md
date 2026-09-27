@@ -1,8 +1,10 @@
-# RustDesk Server в Entware на Keenetic
+# KeenDesk — RustDesk Server для Keenetic / Netcraze
 
-Русская инструкция и установщик официального **RustDesk Server OSS** для роутеров **Keenetic / Netcraze с Entware и ARM64 (aarch64)**. Сервер работает непосредственно на роутере, без Docker и отдельного компьютера. Клиенты — обычный RustDesk.
+**KeenDesk** — русская инструкция и установщик официального **RustDesk Server OSS** для роутеров **Keenetic / Netcraze с Entware и ARM64 (aarch64)**. Сервер работает непосредственно на роутере, без Docker и отдельного компьютера. Клиенты — обычный RustDesk.
 
 Проект автоматизирует установку `hbbs`/`hbbr`, создание ключей, автозапуск, перезапуск после сбоя, ограничение журналов и правила firewall. Это самостоятельная обвязка вокруг официальных бинарников RustDesk, а не Pro-версия и не форк сервера. [Происхождение и лицензии](SOURCE-NOTICE.md).
+
+Подробные разделы: [совместная работа с XKeen](docs/XKEEN.md) · [VPN и KeenDNS](docs/VPN.md) · [обслуживание](docs/OPERATIONS.md) · [похожие решения](docs/ALTERNATIVES.md) · [результаты испытаний](TESTING.md).
 
 ## Что нужно заранее
 
@@ -13,14 +15,14 @@
 - Доступ обоих клиентов к роутеру: через ZeroTier, SSTP/OpenConnect, локальную сеть или публичный IPv4.
 - Поддержка netfilter в ядре. Если нужные модули отсутствуют, установщик не запустит сервер без firewall. Компоненты KeeneticOS устанавливаются через веб-интерфейс; установщик не обновляет прошивку.
 
-Практическая основа проекта проверена на **Keenetic Ultra KN-1811, KeeneticOS 5.1.4, Entware aarch64-k3.10**: запуск, два reboot, восстановление служб, TCP/UDP RustDesk и передача через relay. Это не обещание совместимости с любым устройством. Объём проверки именно публикуемого установщика указан в [TESTING.md](TESTING.md).
+Чистая установка **GitHub-релиза v0.1.0** проверена на **Keenetic Ultra KN-1811, KeeneticOS 5.1.4, Entware aarch64-k3.10**: автонастройка ZeroTier/XKeen, восстановление процесса, автозапуск после reboot, TCP/UDP RustDesk и передача через relay. Это не обещание совместимости с любым устройством. Подробные результаты и ограничения: [TESTING.md](TESTING.md).
 
 ## Установка одной командой
 
 В SSH-shell Entware выполните:
 
 ```sh
-(set -eu; /opt/bin/opkg update; /opt/bin/opkg install curl ca-bundle; rd_setup="$(mktemp /tmp/rustdesk-install.XXXXXX)"; trap 'rm -f "$rd_setup"' EXIT; curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Zhanchuraev/rustdesk-entware/v0.1.0/install.sh -o "$rd_setup"; /bin/sh "$rd_setup")
+(set -eu; /opt/bin/opkg update; /opt/bin/opkg install curl ca-bundle; rd_setup="$(mktemp /tmp/rustdesk-install.XXXXXX)"; trap 'rm -f "$rd_setup"' EXIT; curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.1.0/install.sh -o "$rd_setup"; /bin/sh "$rd_setup")
 ```
 
 Команда скачивает завершённый файл и только после успешной загрузки запускает его. Установщик проверяет контрольные суммы своих служебных файлов, скачивает закреплённую версию **RustDesk Server OSS 1.1.16** из официального GitHub Releases, проверяет SHA-256 и тип ARM64 ELF. Глобальный `opkg upgrade` не выполняется.
@@ -34,7 +36,7 @@
 При необходимости можно сначала скачать `install.sh`, а затем передать настройки:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Zhanchuraev/rustdesk-entware/v0.1.0/install.sh -o /tmp/rustdesk-entware-install.sh
+curl -fsSL https://raw.githubusercontent.com/Zhanchuraev/KeenDesk/v0.1.0/install.sh -o /tmp/rustdesk-entware-install.sh
 RD_ADDRESS=10.147.17.1 RD_INTERFACES=zt0 RD_NETWORKS=10.147.17.0/24 /bin/sh /tmp/rustdesk-entware-install.sh
 ```
 
@@ -131,6 +133,8 @@ flowchart LR
 
 Режим `auto` распознаёт установку с `/opt/etc/init.d/S05xkeen`. При обнаруженном XKeen без ожидаемого правила установка прекращается. `RD_XKEEN=off` допустим, если вы осознанно используете другую маршрутизацию; он не гарантирует выход через физический WAN при произвольной политике роутера. После изменения XKeen проверяйте настоящий обмен данными, а не только список процессов.
 
+**[Подробная инструкция по совместной работе с XKeen](docs/XKEEN.md):** режимы `auto/xkeen/off`, установка XKeen после KeenDesk, маршруты ZeroTier/SSTP/OpenConnect, перезагрузка и восстановление firewall, команды диагностики и проверка реального трафика.
+
 ### Файлы
 
 | Путь | Содержимое |
@@ -189,6 +193,14 @@ rustdeskctl uninstall --yes
 4. Ваш роутер — индивидуальные настройки, ключи, база и журналы.
 
 Отдельный сайт или VPS для раздачи файлов не нужен. Если GitHub недоступен из вашей сети, скачайте файлы по доверенному маршруту и проверьте их целостность; установщик не отключает проверку TLS и не подменяет источник случайным зеркалом.
+
+## Название проекта и совместимость
+
+Проект переименован из `rustdesk-entware` в **KeenDesk**. Команда управления `rustdeskctl`, пути `/opt/…/rustdesk`, цепочки `RDE_*` и внутренний маркер владельца `Zhanchuraev/rustdesk-entware` сохранены для совместимости уже установленных серверов. Переименование не требует переустановки или нового клиентского ключа.
+
+Тег `v0.1.0` сохранён без изменения содержимого: именно этот код прошёл испытание на роутере. В его bootstrap остаются исходные адреса `rustdesk-entware`; после переименования проверены их доступность и контрольные суммы, а также повторный запуск через новый адрес `KeenDesk`. Не создавайте другой репозиторий под прежним именем, пока используете этот релиз: старые ссылки нужны его bootstrap. Актуальная документация находится в ветке `main`.
+
+Идея запуска RustDesk на роутере не новая. В [сравнении похожих решений](docs/ALTERNATIVES.md) приведены пакет Entware, пример Keenetic Community и RouterDesk для ASUSWRT-Merlin.
 
 ## Разработка
 

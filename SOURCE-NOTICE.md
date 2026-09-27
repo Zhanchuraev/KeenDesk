@@ -1,6 +1,6 @@
 # Происхождение компонентов
 
-Этот репозиторий содержит установщик и служебную обвязку для Entware. Он не является разработкой самого RustDesk Server и не относится к официальным продуктам Keenetic/Netcraze или RustDesk.
+**KeenDesk** содержит установщик и служебную обвязку для Entware. Он не является разработкой самого RustDesk Server и не относится к официальным продуктам Keenetic/Netcraze или RustDesk.
 
 - Установщик, supervisor, управление, firewall и документация этого репозитория: MIT, см. [LICENSE](LICENSE).
 - Сервер: официальный [rustdesk/rustdesk-server](https://github.com/rustdesk/rustdesk-server), версия [1.1.16](https://github.com/rustdesk/rustdesk-server/releases/tag/1.1.16), лицензия [GNU AGPL v3](https://github.com/rustdesk/rustdesk-server/blob/1.1.16/LICENSE).
