@@ -32,9 +32,9 @@ def input_rules(cfg, ipv6=False):
         for iface in cfg['interfaces']:
             for network in cfg['networks'] or [None]:
                 source = ['-s', network] if network and network != '0.0.0.0/0' else []
-                desired.append(['-i', iface, *source, '-p', 'tcp', '-m', 'multiport',
+                desired.append([*source, '-i', iface, '-p', 'tcp', '-m', 'multiport',
                                 '--dports', '21115:21117', '-j', 'ACCEPT'])
-                desired.append(['-i', iface, *source, '-p', 'udp', '-m', 'udp',
+                desired.append([*source, '-i', iface, '-p', 'udp', '-m', 'udp',
                                 '--dport', '21116', '-j', 'ACCEPT'])
     return desired + [['-j', 'DROP']]
 

@@ -33,8 +33,8 @@ while read -r rd_hash rd_file; do
     (cd "$rd_stage" && printf '%s  %s\n' "$rd_hash" "$rd_file" | sha256sum -c -)
 done <<'CHECKSUMS'
 516513cdd15cc814ce15f1af6f88cbba00e1a0298b4a6e2bf6259a70e3f3d8d2 common.py
-beb1640d2cd7c5d07f5396f4e16ef3d088f1d3fbbd12913ca2e9828777a1a29f install.py
-e220ca50d50be339d03fde1d6c1db340bf35c525af4077338f4d2cf9835bf546 firewall.py
+aaff7403bfd815a143500997160affd99cf9d4d355d6e609ba7299d2ea15fbf6 install.py
+0c4e7b81f4d467c89546e9f2692b25a4dc5e534a35f5fa67a0435420e54e6670 firewall.py
 ba5bed200725bd64740dc333f4eebf663f50e27d72531c8236af1c897b0b32b3 supervisor.py
 dc75930e52a5b98b277613010b15f81201ff3a31ec61578541936b64a8739b91 manage.py
 d774662d25e93dca96336b7217a9fe590c96a5125623330b328fc6fbb9b9efea S90rustdesk

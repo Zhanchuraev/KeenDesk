@@ -173,10 +173,22 @@ def deploy(cfg,binaries):
             private = DATA/'id_ed25519'
             if not private.exists(): raise RuntimeError('Сервер не создал ключ.')
             private.chmod(0o600)
-            with socket.create_connection(('127.0.0.1',21115),timeout=5) as probe:
-                # Native length-delimited TestNatRequest; reply is length-delimited TestNatResponse.
+            # hbbs reserves loopback:21115 for its text administration protocol.
+            # The main TCP listener accepts TestNatRequest on loopback too.
+            with socket.create_connection(('127.0.0.1',21116),timeout=5) as probe:
                 probe.sendall(b'\x0c\xa2\x01\x00')
-                if not probe.recv(128): raise RuntimeError('NAT-служба не ответила.')
+                def exact(length):
+                    result = b''
+                    while len(result) < length:
+                        chunk = probe.recv(length-len(result))
+                        if not chunk: raise RuntimeError('ID-служба закрыла проверочное соединение.')
+                        result += chunk
+                    return result
+                first = exact(1)
+                header = first+exact(first[0] & 3)
+                length = int.from_bytes(header,'little') >> 2
+                if not 3 <= length <= 128 or not exact(length).startswith(b'\xaa\x01'):
+                    raise RuntimeError('ID-служба не вернула TestNatResponse.')
         except Exception:
             if MARKER.exists():
                 stopped = run(['/opt/bin/python3',CONF/'manage.py','stop'],check=False,timeout=45)
