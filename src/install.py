@@ -50,6 +50,9 @@ def fresh_preflight():
                     raise RuntimeError('Уже есть чужая/оставшаяся цепочка '+chain+'; требуется ручная проверка.')
     for port,kind in [(p,socket.SOCK_STREAM) for p in range(21115,21120)]+[(21116,socket.SOCK_DGRAM)]:
         with socket.socket(socket.AF_INET,kind) as s:
+            if kind == socket.SOCK_STREAM:
+                # Ignore TIME_WAIT after a clean uninstall, but not live listeners.
+                s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
             try: s.bind(('0.0.0.0',port))
             except OSError as exc: raise RuntimeError('Порт занят: '+str(port)) from exc
 

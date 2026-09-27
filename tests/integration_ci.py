@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import signal
 import shutil
+import socket
 import subprocess
 import sys
 import tarfile
@@ -166,6 +167,11 @@ def main():
             assert hashlib.sha256(private).hexdigest() == saved['id_ed25519']
     print('PASS configure, backup, uninstall; original key retained in private archives',flush=True)
     # Also cover a clean v0.2.0 installation, independent of migration.
+    with socket.socket() as occupied:
+        occupied.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        occupied.bind(('0.0.0.0',21116)); occupied.listen()
+        assert subprocess.run(installer,env=env).returncode != 0
+        assert not CONF.exists(), 'A live foreign listener must block installation'
     command(*installer,env=env)
     command(ctl,'doctor')
     command(ctl,'uninstall','--yes')
