@@ -124,7 +124,6 @@ def main():
     # Read-only VPN panel on a simulated ZeroTier interface; real interface ACL.
     command('ip','link','set','rdeserver','name','ztci0')
     command(ctl,'configure','--interfaces','ztci0')
-    command(ctl,'web','--listen','192.0.2.1','--interface','ztci0') if False else None  # Public test-net listener is intentionally rejected.
     command('ip','addr','add','192.168.250.1/30','dev','ztci0')
     command('ip','netns','exec','rdeclient','ip','addr','add','192.168.250.2/30','dev','rdepeer')
     command(ctl,'configure','--networks','192.0.2.0/30 192.168.250.0/30')

@@ -125,7 +125,7 @@ def main():
                     continue
                 if name == 'hbbr' and not (DATA/'id_ed25519.pub').exists():
                     continue
-                env = dict(os.environ,RUST_LOG='info',HOME=str(DATA))
+                env = dict(os.environ,RUST_LOG='info',HOME=str(DATA),XDG_CONFIG_HOME=str(DATA/'.config'))
                 for var in ('http_proxy','https_proxy','all_proxy','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY'):
                     env.pop(var,None)
                 try:

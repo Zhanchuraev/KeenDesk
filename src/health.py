@@ -80,7 +80,25 @@ def udp_probe(host='127.0.0.1'):
     return 'UDP 21116: ответ получен; запись в базе не создавалась'
 
 
-def relay_probe(key,host='127.0.0.1'):
+def local_address():
+    from common import load_config, run
+    interfaces = load_config()['interfaces']
+    candidates = []
+    for line in run(['ip','-o','-4','addr','show']).stdout.splitlines():
+        row = line.split()
+        if len(row) < 4 or row[2] != 'inet' or row[1] == 'lo': continue
+        name = row[1].split('@')[0]
+        address = row[3].split('/')[0]
+        if any(name.startswith(x[:-1]) if x.endswith('+') else name == x for x in interfaces): return address
+        candidates.append(address)
+    if candidates: return candidates[0]
+    raise RuntimeError('Для native relay-пробы нужен локальный IPv4 вне 127.0.0.0/8')
+
+
+def relay_probe(key,host=None):
+    # hbbr handles loopback-source TCP as its text administration protocol.
+    # A local non-loopback address keeps the test on this host but exercises relay.
+    host = host or local_address()
     request = frame(field(18,field(1,'keendesk-doctor')+field(2,str(uuid.uuid4()))+field(6,key)))
     with socket.create_connection((host,21117),timeout=3) as a, \
          socket.create_connection((host,21117),timeout=3) as b:
