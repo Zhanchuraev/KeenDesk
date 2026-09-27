@@ -1,0 +1,7 @@
+#!/opt/bin/sh
+PATH=/opt/bin:/opt/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+case "$1" in
+    kill) exec /opt/bin/python3 /opt/etc/rustdesk/manage.py stop;;
+    *) exec /opt/bin/python3 /opt/etc/rustdesk/manage.py "$@";;
+esac

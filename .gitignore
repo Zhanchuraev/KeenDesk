@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.log
+*.sqlite*
+*.db
+*.zip
+*.tar.gz
+id_ed25519*
+server.json
+managed.json
+client-settings*
+.env
+artifacts/

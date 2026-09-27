@@ -1,0 +1,55 @@
+name: Проверки установщика
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax and tests
+        run: |
+          python3 -m compileall -q src tools tests
+          python3 -m unittest discover -s tests -v
+      - name: Shell syntax
+        run: |
+          sh -n install.sh
+          sh -n src/S90rustdesk
+          sh -n src/90-rustdesk.sh
+          sh -n src/rustdeskctl
+      - name: Bootstrap is reproducible
+        run: |
+          python3 tools/build_bootstrap.py
+          git diff --exit-code -- install.sh
+  arm64-integration:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare disposable ARM64 network and Entware path facade
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iptables iproute2
+          sudo mkdir -p /opt/bin /opt/sbin /opt/etc /opt/var/lib /opt/var/log /opt/var/run
+          sudo ln -s /usr/bin/python3 /opt/bin/python3
+          sudo ln -s /bin/sh /opt/bin/sh
+          sudo ln -s /usr/bin/touch /opt/bin/touch
+          printf '#!/bin/sh\nexit 0\n' | sudo tee /opt/bin/opkg /bin/ndmc >/dev/null
+          sudo chmod 755 /opt/bin/opkg /bin/ndmc
+          sudo ip netns add rdeclient
+          sudo ip link add rdeserver type veth peer name rdepeer
+          sudo ip link set rdepeer netns rdeclient
+          sudo ip addr add 192.0.2.1/30 dev rdeserver
+          sudo ip link set rdeserver up
+          sudo ip netns exec rdeclient ip addr add 192.0.2.2/30 dev rdepeer
+          sudo ip netns exec rdeclient ip link set rdepeer up
+          sudo ip netns exec rdeclient ip link set lo up
+          sudo iptables -A INPUT -m comment --comment rde-ci-foreign -j ACCEPT
+      - name: Install, exercise native RustDesk and firewall, recover, backup, uninstall
+        run: sudo env GITHUB_ACTIONS=true RUNNER_ARCH=ARM64 python3 tests/integration_ci.py
+      - name: Diagnostic service logs on failure
+        if: failure()
+        run: |
+          sudo find /opt/var/log/rustdesk -maxdepth 1 -name '*.log' -exec tail -100 {} \; || true
+          sudo iptables -S
+          sudo ip6tables -S

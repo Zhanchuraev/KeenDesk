@@ -1,0 +1,4 @@
+#!/opt/bin/sh
+PATH=/opt/bin:/opt/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+exec /opt/bin/python3 /opt/etc/rustdesk/manage.py "$@"
